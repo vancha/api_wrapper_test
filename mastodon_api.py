@@ -2,6 +2,14 @@ import requests
 import json
 import pickle
 
+
+
+
+#read here for more info: https://docs.joinmastodon.org/methods/apps/
+
+
+
+
 #interact with this, the "base" of this entire api
 class API_App(object):
     #store client_id and _secret in cache, as these will be used to obtain oauth tokens
