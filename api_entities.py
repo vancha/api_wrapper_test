@@ -75,6 +75,9 @@ class API_Application(API_Entity):
             with open("application.pkl", "wb") as f:
                 pickle.dump(self.cached, f)
 
+    #this will get the actual token thingy
+    def authenticate(self):
+        pass
         
     def verify_credentials(self):
         headers = {'Authorization':''}
