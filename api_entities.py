@@ -74,9 +74,24 @@ class API_Application(API_Entity):
                 self.cached = json.loads(response.content)
             with open("application.pkl", "wb") as f:
                 pickle.dump(self.cached, f)
+    
+    def has_obtained_token(self):
+        if self.cached.get('access_token',None):
+            return True
+        else:
+            return False
+
+    def has_obtained_secret(self):
+        if self.cached.get('client_secret',None):
+            return True
+        else:
+            return False
 
     #this will get the actual token thingy
     def authenticate(self):
+        print('credentials: '+self.cached.get('client_secret',None))
+        #get token as explained on https://docs.joinmastodon.org/methods/apps/oauth/#obtain-a-token
+        #also, store it in the cache/pickle thing!
         pass
         
     def verify_credentials(self):
