@@ -1,25 +1,28 @@
 from abc import ABCMeta, abstractmethod
 import requests
+import pickle
+import json
+
+
+DEFAULT_METHOD_HOST = "https://mastodon.sdf.org"
 
 #read here for more info: https://docs.joinmastodon.org/methods/apps/
-
-class API_Entity(object):
-    @property
-    @abstractmethod
+class API_Entity(metaclass=ABCMeta):
+    
     def api_method_host(self):
-        pass
+        return DEFAULT_METHOD_HOST
 
     @property
     @abstractmethod
     def api_method_path(self):
         pass
 
-    requests = requests
-    def __init__():
-        raise NotImplementedError("Please Implement this method")
+    @property
+    @abstractmethod
+    def required_attributes(self) -> list:
+        pass
 
-    def create_from_api():
-        raise NotImplementedError("Please Implement this method")
+    #requests = requests
 
 class API_Account(API_Entity):
     def __init__(id,username,acct,url,display_name,note,avatar,avatar_static,header,header_static,locked,emojis,discoverable,created_at,last_status_at,statuses_count):
@@ -34,7 +37,6 @@ class API_Announcement(API_Entity):
 class API_AnnouncementReaction(API_Entity):
     pass
 
-#required to create OAuth2 credentials
 class API_Application(API_Entity):
     #required attributes
     name            = ""
@@ -46,21 +48,39 @@ class API_Application(API_Entity):
     #client attributes
     client_id       = ""
     client_secret   = ""
-
+   
+    #POST: create a new application to obtain OAuth2 credentials
+    #   params:
+    #       client_name     - A name for your application
+    #       redirect_uris   - Where the user should be redirected after authorization. To display the authorization code to the user instead of redirecting to a web page, use urn:ietf:wg:oauth:2.0:oob in this parameter
+    #       scopes          - Space separated list of scopes. If none is provided, defaults to read (optional)
+    #       website         - A URL to the homepage of your app (optional)
+    def api_method_path(self):
+        return "/api/v1/apps"
+    
+    def required_attributes(self):
+        return ["client_name"]
 
     #https://mastodon.example/api/v1/apps
-    def __init__(name):
+    def __init__(self):
         try:
-            #try and get an app from the cache
-            #cached_app = pickle.load(open("apistate.pickle","rb"))
-            pass
-        except(OSError,IOError) as e:
-            #it didn't exist, create it here
-            pass
+            with open("application.pkl", "rb") as f:
+                self.cached = pickle.load(f)
+        except Exception:
+            payload = {'client_name':'baguette','redirect_uris':'urn:ietf:wg:oauth:2.0:oob'}
+            session = requests.Session()
+            response = session.post(self.api_method_host() + self.api_method_path(),data=payload)
+            if response.status_code == 200:
+                self.cached = json.loads(response.content)
+            with open("application.pkl", "wb") as f:
+                pickle.dump(self.cached, f)
 
-
+        
     def verify_credentials(self):
-        pass
+        headers = {'Authorization':''}
+        payload = {'client_name':'baguette','redirect_uris':'urn:ietf:wg:oauth:2.0:oob'}
+        session = requests.Session()
+        response = session.post(self.api_method_host() + self.api_method_path(),data=payload)
 
 class API_Attachment(API_Entity):
     pass
@@ -143,5 +163,11 @@ class API_Tag(API_Entity):
     pass
 
 class API_Token(API_Entity):
-    pass
+    #attributes
+    access_token    = ""
+    token_type      = ""
+    scope           = ""
+    created_at      = ""
 
+    def __init__(self):
+        pass
