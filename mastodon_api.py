@@ -1,7 +1,7 @@
 import requests
 import json
 import pickle
-
+from abc import ABCMeta, abstractmethod
 
 
 
@@ -11,29 +11,29 @@ import pickle
 
 
 #interact with this, the "base" of this entire api
-class API_App(object):
-    #store client_id and _secret in cache, as these will be used to obtain oauth tokens
-    client_id       = ""
-    client_secret   = ""
+class API_Base(metaclass=ABCMeta):
 
-    #https://mastodon.example/api/v1/apps
-    def __init__(name):
-        try:
-            #try and get an app from the cache
-            #cached_app = pickle.load(open("apistate.pickle","rb"))
-            pass
-        except(OSError,IOError) as e:
-            #it didn't exist, create it here
-            pass
-        
 
-    def verify_credentials(self):
+    def __init__(self):
+        #The first thing we will need to do is to register an application, in order to be able to generate access tokens later
         pass
 
-
     class API_Entity(object):
+        @property
+        @abstractmethod
+        def api_method_host(self):
+            pass
+
+        @property
+        @abstractmethod
+        def api_method_path(self):
+            pass
+
         requests = requests
         def __init__():
+            raise NotImplementedError("Please Implement this method")
+
+        def create_from_api():
             raise NotImplementedError("Please Implement this method")
 
     class API_Account(API_Entity):
@@ -48,6 +48,34 @@ class API_App(object):
 
     class API_AnnouncementReaction(API_Entity):
         pass
+
+    #required to create OAuth2 credentials
+    class API_Application(API_Entity):
+        #required attributes
+        name            = ""
+
+        #optional attributes
+        website         = ""
+        vapid_key       = ""
+
+        #client attributes
+        client_id       = ""
+        client_secret   = ""
+
+
+        #https://mastodon.example/api/v1/apps
+        def __init__(name):
+            try:
+                #try and get an app from the cache
+                #cached_app = pickle.load(open("apistate.pickle","rb"))
+                pass
+            except(OSError,IOError) as e:
+                #it didn't exist, create it here
+                pass
+        
+
+        def verify_credentials(self):
+            pass
 
     class API_Attachment(API_Entity):
         pass
@@ -135,8 +163,7 @@ class API_App(object):
 
 
 #only this code is relevant:
-#creating a new instance
-random_instance = API_App.API_Instance('https://mastodon.sdf.org')
+api_base = API_Base()
 
 #getting the instances public timeline
 #print(random_instance.get_public_timeline())
