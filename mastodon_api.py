@@ -12,9 +12,8 @@ class API_Base():
     def __init__(self):
         #The first thing we will need to do is to register an application, in order to be able to generate access tokens later
         application = API_Application()
-        if application.has_obtained_secret() and not application.has_obtained_token():
-            print('got secret')
-            application.authenticate()
+        #if application.has_obtained_secret() and not application.has_obtained_token():
+        #    application.authenticate()
         
     def get_public_timeline(self):
         pass

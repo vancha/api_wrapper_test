@@ -17,11 +17,6 @@ class API_Entity(metaclass=ABCMeta):
     def api_method_path(self):
         pass
 
-    @property
-    @abstractmethod
-    def required_attributes(self) -> list:
-        pass
-
     #requests = requests
 
 class API_Account(API_Entity):
@@ -38,17 +33,6 @@ class API_AnnouncementReaction(API_Entity):
     pass
 
 class API_Application(API_Entity):
-    #required attributes
-    name            = ""
-
-    #optional attributes
-    website         = ""
-    vapid_key       = ""
-
-    #client attributes
-    client_id       = ""
-    client_secret   = ""
-   
     #POST: create a new application to obtain OAuth2 credentials
     #   params:
     #       client_name     - A name for your application
@@ -58,9 +42,6 @@ class API_Application(API_Entity):
     def api_method_path(self):
         return "/api/v1/apps"
     
-    def required_attributes(self):
-        return ["client_name"]
-
     #https://mastodon.example/api/v1/apps
     def __init__(self):
         try:
@@ -74,31 +55,22 @@ class API_Application(API_Entity):
                 self.cached = json.loads(response.content)
             with open("application.pkl", "wb") as f:
                 pickle.dump(self.cached, f)
+        if not self.has_obtained_token():
+            self.authenticate()
     
     def has_obtained_token(self):
-        if self.cached.get('access_token',None):
+        if hasattr(self,'token'):
             return True
         else:
             return False
 
-    def has_obtained_secret(self):
-        if self.cached.get('client_secret',None):
-            return True
-        else:
-            return False
 
-    #this will get the actual token thingy
+    #get oauth token from /oauth/token
     def authenticate(self):
-        print('credentials: '+self.cached.get('client_secret',None))
-        #get token as explained on https://docs.joinmastodon.org/methods/apps/oauth/#obtain-a-token
-        #also, store it in the cache/pickle thing!
-        pass
+        self.token = API_Token('client_credentials',self.cached['client_id'],self.cached['client_secret'],'ietf:wg:oauth:2.0:oob')
+        #self.verify_credentials()
         
-    def verify_credentials(self):
-        headers = {'Authorization':''}
-        payload = {'client_name':'baguette','redirect_uris':'urn:ietf:wg:oauth:2.0:oob'}
-        session = requests.Session()
-        response = session.post(self.api_method_host() + self.api_method_path(),data=payload)
+    
 
 class API_Attachment(API_Entity):
     pass
@@ -181,11 +153,50 @@ class API_Tag(API_Entity):
     pass
 
 class API_Token(API_Entity):
-    #attributes
-    access_token    = ""
-    token_type      = ""
-    scope           = ""
-    created_at      = ""
+    
+    def api_method_path(self):
+        return '/oauth/token'
+        
+    def verify(self):
+        headers = {'Authorization':'Bearer '+ self.get_app_token()}
+        session = requests.Session()
+        response = session.get(self.api_method_host() + "/api/v1/apps/verify_credentials",headers=headers)
+        if not response.status_code == 200:
+            raise Exception("error, could not verify: code "+str(response.status_code))
+    
+    
+    def __init__(self,grant_type, client_id, client_secret, redirect_uri, scope="read",code=None):
+        try:
+            with open("token.pkl", "rb") as f:
+                self.cached = pickle.load(f)
+                #print('token existed:'+str(self.cached))
+        except Exception:
+            print('creating token')
+            
+            payload = {
+                'grant_type':grant_type,
+                'client_id':client_id,
+                'client_secret':client_secret,
+                'redirect_url':redirect_uri,
+                'scope':scope
+            }
+            if code:
+                payload['code']=code
+            
+            session = requests.Session()
+            response = session.post(self.api_method_host() + self.api_method_path(),data=payload)
+            if response.status_code == 200:
+                self.cached = json.loads(response.content)
+                try:
+                    self.verify()
+                except Exception:
+                    raise CouldNotVerifyException('test')
+            else:
+                raise Exception('could not get token')
+        
+        with open("token.pkl", "wb") as f:
+            pickle.dump(self.cached, f)
+            
+    def get_app_token(self):
+        return self.cached['access_token']
 
-    def __init__(self):
-        pass
